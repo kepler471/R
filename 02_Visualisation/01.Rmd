@@ -1,0 +1,390 @@
+---
+title: "Introduction to Data Visualisation and Distributions"
+output: html_notebook
+---
+
+```{r}
+library(dslabs)
+library(ggplot2)
+library(tidyverse)
+```
+
+```{r}
+data(murders)
+str(murders)
+```
+
+```{r}
+head(murders)
+```
+
+- Data types:
+  - Categorical
+    - Ordinal
+    - Non-ordinal
+  - Numeric
+    - Discrete
+    - Continuous
+    
+```{r}
+data(heights)
+str(heights)
+```
+
+```{r}
+summary(heights)
+```
+
+```{r}
+tapply(heights$height, heights$sex, summary)
+```
+
+## Distributions
+
+  A distribution is a function or description that shows the possible values of a variable and how often those values occur.
+    
+  For categorical variables, the distribution describes the proportions of each category.
+
+  A frequency table is the simplest way to show a categorical distribution. Use prop.table() to convert a table of counts to a frequency table. Barplots display the distribution of categorical variables and are a way to visualize the information in frequency tables.
+
+  For continuous numerical data, reporting the frequency of each unique entry is not an effective summary as many or most values are unique. Instead, a distribution function is required.
+
+  The cumulative distribution function (CDF) is a function that reports the proportion of data below a value 𝑎 for all values of 𝑎: 𝐹(𝑎)=Pr(𝑥≤𝑎).
+
+  The proportion of observations between any two values 𝑎 and 𝑏 can be computed from the CDF as 𝐹(𝑏)−𝐹(𝑎).
+
+  A histogram divides data into non-overlapping bins of the same size and plots the counts of number of values that fall in that interval.
+  
+  
+  If a distribution is not normal, it cannot be summarized with only the mean and standard deviation. Provide a histogram, smooth density or boxplot instead.
+
+  A plot can force us to see unexpected results that make us question the quality or implications of our data.
+
+  
+  
+```{r}
+prop.table(table(heights$sex))
+```
+
+
+```{r}
+hist(heights$height[heights$sex == "Male"])
+```
+
+
+
+
+```{r}
+boxplot(height ~ sex, data = heights)
+```
+
+
+
+#### Cumulative Distribution Function
+```{r}
+my_data <- heights$height
+a <- seq(min(my_data), max(my_data), length = 100)    # define range of values spanning the dataset
+cdf_function <- function(x) {    # computes prob. for a single value
+    mean(my_data <= x)
+}
+cdf_values <- sapply(a, cdf_function)
+plot(a, cdf_values)
+```
+
+#### Smooth Density Plot
+
+Smooth density plots can be thought of as histograms where the bin width is extremely or infinitely small. The smoothing function makes estimates of the true continuous trend of the data given the available sample of data points.
+
+The degree of smoothness can be controlled by an argument in the plotting function. (We will learn functions for plotting later.)
+
+While the histogram is an assumption-free summary, the smooth density plot is shaped by assumptions and choices you make as a data analyst.
+The y-axis is scaled so that the area under the density curve sums to 1. This means that interpreting values on the y-axis is not straightforward. To determine the proportion of data in between two values, compute the area under the smooth density curve in the region between those values.
+
+An advantage of smooth densities over histograms is that densities are easier to compare visually
+
+```{r}
+ggplot(heights, aes(height, color = sex, fill = sex)) + 
+  geom_density(alpha = 0.4)
+```
+
+
+#### Normal Distribution
+
+The normal distribution:
+-        Is centered around one value, the mean
+-        Is symmetric around the mean
+-        Is defined completely by its mean (𝜇) and standard deviation ( 𝜎 )
+-        Always has the same proportion of observations within a given distance of the mean (for example, 95% within 2 𝜎)
+
+  The standard deviation is the average distance between a value and the mean value.
+  
+  Calculate the mean using the mean() function.
+  
+  Calculate the standard deviation using the sd() function or manually. 
+  
+  Standard units describe how many standard deviations a value is away from the mean. The z-score, or number of standard deviations an observation 𝑥 is away from the mean 𝜇:
+
+    𝑍=𝑥−𝜇𝜎
+
+  Compute standard units with the scale() function.
+  
+  Important: to calculate the proportion of values that meet a certain condition, use the mean() function on a logical vector. Because TRUE is converted to 1 and FALSE is converted to 0, taking the mean of this vector yields the proportion of TRUE.
+
+The normal distribution is mathematically defined by the following formula for any mean 𝜇 and standard deviation 𝜎:
+
+    Pr(𝑎<𝑥<𝑏)=∫𝑏𝑎12𝜋√𝜎𝑒−12(𝑥−𝜇𝜎)2𝑑𝑥
+    
+```{r}
+# define x as vector of male heights
+data(heights)
+index <- heights$sex=="Male"
+x <- heights$height[index]
+
+# calculate the mean and standard deviation manually
+average <- sum(x)/length(x)
+SD <- sqrt(sum((x - average)^2)/length(x))
+
+# built-in mean and sd functions - note that the audio and printed values disagree
+average <- mean(x)
+SD <- sd(x)
+c(average = average, SD = SD)
+
+# calculate standard units
+z <- scale(x)
+
+# calculate proportion of values within 2 SD of mean
+mean(abs(z) < 2)
+```
+
+### Standard Units and Z-Scores
+
+#### Standard Units
+
+For data that are approximately normal, standard units describe the number of standard deviations an observation is from the mean. Standard units are denoted by the variable 𝑧 and are also known as z-scores.
+
+For any value 𝑥 from a normal distribution with mean 𝜇 and standard deviation 𝜎, the value in standard units is:
+
+𝑧=𝑥−𝜇𝜎
+
+Standard units are useful for many reasons. Note that the formula for the normal distribution is simplified by substituting 𝑧 in the exponent:
+
+Pr(𝑎<𝑥<𝑏)=∫𝑏𝑎12𝜋√𝜎𝑒−12𝑧2𝑑𝑥
+
+When 𝑧=0, the normal distribution is at a maximum, the mean 𝜇. The function is defined to be symmetric around 𝑧=0.
+
+The normal distribution of z-scores is called the standard normal distribution and is defined by 𝜇=0 and 𝜎=1.
+
+Z-scores are useful to quickly evaluate whether an observation is average or extreme. Z-scores near 0 are average. Z-scores above 2 or below -2 are significantly above or below the mean, and z-scores above 3 or below -3 are extremely rare. 
+
+We will learn more about benchmark z-score values and their corresponding probabilities below.
+
+```{r}
+# The scale function converts a vector of approximately normally distributed values into z-scores.
+
+z <- scale(x)
+
+# You can compute the proportion of observations that are within 2 standard
+# deviations of the mean like this:
+
+mean(abs(z) < 2)
+```
+
+The normal distribution is associated with the 68-95-99.7 rule. This rule describes the probability of observing events within a certain number of standard deviations of the mean. This image shows the density plot for the normal distribution. It has shaded ranges corresponding to values within 1, 2 or 3 standard deviations of the mean. It lists that observations fall within these ranges 68.3%, 95.4%, and 99.7% of the time respectively.
+
+![](https://courses.edx.org/assets/courseware/v1/28d10d22ba8b3bf4b0cc5024de0dc616/asset-v1:HarvardX+PH125.2x+1T2021+type@asset+block/norm-dist-probs-combined.png)
+
+The probability distribution function for the normal distribution is defined such that:
+
+-  About 68% of observations will be within one standard deviation of the mean (𝜇±𝜎). In standard units, this is equivalent to a z-score of ∣𝑧∣≤1. This density plot of the normal distribution has values within 1 standard deviation of the mean shaded in and notes that 68.3% of observations fall in this range.
+  
+![](https://courses.edx.org/assets/courseware/v1/f0bb9f66b7bdd91b2c9852c7a68427c7/asset-v1:HarvardX+PH125.2x+1T2021+type@asset+block/norm-dist-1sd.png)
+  
+-  About 95% of observations will be within two standard deviations of the mean (𝜇±2𝜎). In standard units, this is equivalent to a z-score of ∣𝑧∣≤2.This density plot of the normal distribution has values within 2 standard deviations of the mean shaded in and notes that 95.4% of observations fall in this range.
+
+![](https://courses.edx.org/assets/courseware/v1/9686a507a97a536a1f5c6b6a01bd8154/asset-v1:HarvardX+PH125.2x+1T2021+type@asset+block/norm-dist-2sd.png)
+
+-  About 99.7% of observations will be within three standard deviations of the mean (𝜇±3𝜎). In standard units, this is equivalent to a z-score of ∣𝑧∣≤3.
+This density plot of the normal distribution has values within 3 standard deviations of the mean shaded in and notes that 99.7% of observations fall in this range.
+
+![](https://courses.edx.org/assets/courseware/v1/a8af7c699c20d1e83819b5f68bf6f17d/asset-v1:HarvardX+PH125.2x+1T2021+type@asset+block/norm-dist-3sd.png)
+
+##### The Normal CDF and `pnorm`
+
+  The normal distribution has a mathematically defined CDF which can be computed in R with the function pnorm().
+
+  `pnorm(a, avg, s)` gives the value of the cumulative distribution function 𝐹(𝑎) for the normal distribution defined by average avg and standard deviation s.
+  
+  We say that a random quantity is normally distributed with average avg and standard deviation s if the approximation pnorm(a, avg, s) holds for all values of a.
+
+  If we are willing to use the normal approximation for height, we can estimate the distribution simply from the mean and standard deviation of our values.
+
+  If we treat the height data as discrete rather than categorical, we see that the data are not very useful because integer values are more common than expected due to rounding. This is called discretization.
+
+  With rounded data, the normal approximation is particularly useful when computing probabilities of intervals of length 1 that include exactly one integer.
+
+
+```{r}
+data(heights)
+x <- heights %>% filter(sex=="Male") %>% pull(height)
+
+# We can estimate the probability that a male is taller than 70.5 inches with:
+1 - pnorm(70.5, mean(x), sd(x))
+
+# plot distribution of exact heights in data
+plot(prop.table(table(x)), xlab = "a = Height in inches", ylab = "Pr(x = a)")
+
+# probabilities in actual data over length 1 ranges containing an integer
+mean(x <= 68.5) - mean(x <= 67.5)
+mean(x <= 69.5) - mean(x <= 68.5)
+mean(x <= 70.5) - mean(x <= 69.5)
+
+# probabilities in normal approximation match well
+pnorm(68.5, mean(x), sd(x)) - pnorm(67.5, mean(x), sd(x))
+pnorm(69.5, mean(x), sd(x)) - pnorm(68.5, mean(x), sd(x))
+pnorm(70.5, mean(x), sd(x)) - pnorm(69.5, mean(x), sd(x))
+
+# probabilities in actual data over other ranges don't match normal approx as well
+mean(x <= 70.9) - mean(x <= 70.1)
+pnorm(70.9, mean(x), sd(x)) - pnorm(70.1, mean(x), sd(x))
+```
+
+## Quantiles, Percentiles, and Boxplots
+
+*Quantiles* are cutoff points that divide a dataset into intervals with set probabilities. The 𝑞th quantile is the value at which 𝑞% of the observations are equal to or less than that value.
+
+Given a dataset data and desired quantile q, you can find the qth quantile of data with: 
+
+`quantile(data,q)`
+
+*Percentiles* Percentiles are the quantiles that divide a dataset into 100 intervals each with 1% probability. You can determine all percentiles of a dataset data like this:
+
+```
+p <- seq(0.01, 0.99, 0.01)
+quantile(data, p)
+```
+
+*Quartiles* Quartiles divide a dataset into 4 parts each with 25% probability. They are equal to the 25th, 50th and 75th percentiles. The 25th percentile is also known as the 1st quartile, the 50th percentile is also known as the median, and the 75th percentile is also known as the 3rd quartile.
+
+The `summary()` function returns the minimum, quartiles and maximum of a vector.
+
+```{r}
+# Load the heights dataset from the dslabs package:
+library(dslabs)
+data(heights)
+
+# Use summary() on the heights$height variable to find the quartiles:
+summary(heights$height)
+
+# Find the percentiles of heights$height:
+p <- seq(0.01, 0.99, 0.01)
+percentiles <- quantile(heights$height, p)
+
+# Confirm that the 25th and 75th percentiles match the 1st and 3rd quartiles.
+# Note that quantile() returns a named vector. You can access the 25th and 75th
+# percentiles like this (adapt the code for other percentile values):
+percentiles[names(percentiles) == "25%"]
+percentiles[names(percentiles) == "75%"]
+```
+
+### Quantiles
+
+#### `qnorm`
+
+The qnorm() function gives the theoretical value of a quantile with probability p of observing a value equal to or less than that quantile value given a normal distribution with mean mu and standard deviation sigma:
+
+`qnorm(p, mu, sigma)`
+
+By default, mu=0 and sigma=1. Therefore, calling qnorm() with no arguments gives quantiles for the standard normal distribution.
+
+`qnorm(p)`
+
+Recall that quantiles are defined such that p is the probability of a random observation less than or equal to the quantile.
+
+##### Relation to `pnorm`
+
+The `pnorm()` function gives the probability that a value from a standard normal distribution will be less than or equal to a z-score value z. Consider:
+
+`pnorm(-1.96) ≈0.025`
+
+The result of pnorm() is the quantile. Note that:
+
+`qnorm(0.025) ≈−1.96`
+
+`qnorm()` and `pnorm()` are inverse functions:
+
+`pnorm(qnorm(0.025)) =0.025`
+
+##### Theoretical quantiles
+
+You can use qnorm() to determine the theoretical quantiles of a dataset: that is, the theoretical value of quantiles assuming that a dataset follows a normal distribution. Run the qnorm() function with the desired probabilities p, mean mu and standard deviation sigma. 
+
+Suppose male heights follow a normal distribution with a mean of 69 inches and standard deviation of 3 inches. The theoretical quantiles are:
+
+```{r}
+p <- seq(0.01, 0.99, 0.01)
+theoretical_quantiles <- qnorm(p, 69, 3)
+theoretical_quantiles
+```
+
+Theoretical quantiles can be compared to sample quantiles determined with the quantile function in order to evaluate whether the sample follows a normal distribution.
+
+#### Quantile-Quantile (QQ) Plots
+
+
+  Quantile-quantile plots, or QQ-plots, are used to check whether distributions are well-approximated by a normal distribution.
+
+  Given a proportion 𝑝, the quantile 𝑞 is the value such that the proportion of values in the data below 𝑞 is 𝑝.
+
+  In a QQ-plot, the sample quantiles in the observed data are compared to the theoretical quantiles expected from the normal distribution. If the data are well-approximated by the normal distribution, then the points on the QQ-plot will fall near the identity line (sample = theoretical).
+
+  Calculate sample quantiles (observed quantiles) using the quantile() function.
+
+  Calculate theoretical quantiles with the `qnorm()` function. `qnorm()` will calculate quantiles for the standard normal distribution (𝜇=0,𝜎=1) by default, but it can calculate quantiles for any normal distribution given `mean()` and `sd()` arguments. We will learn more about `qnorm()` in the probability course.
+
+  Note that we will learn alternate ways to make QQ-plots with less code later in the series.
+
+```{r}
+# define x and z
+library(tidyverse)
+library(dslabs)
+data(heights)
+index <- heights$sex=="Male"
+x <- heights$height[index]
+z <- scale(x)
+
+# proportion of data below 69.5
+mean(x <= 69.5)
+
+# calculate observed and theoretical quantiles
+p <- seq(0.05, 0.95, 0.05)
+observed_quantiles <- quantile(x, p)
+theoretical_quantiles <- qnorm(p, mean = mean(x), sd = sd(x))
+
+# make QQ-plot
+plot(theoretical_quantiles, observed_quantiles)
+abline(0,1)
+
+# make QQ-plot with scaled values
+observed_quantiles <- quantile(z, p)
+theoretical_quantiles <- qnorm(p)
+plot(theoretical_quantiles, observed_quantiles)
+abline(0,1)
+```
+
+### Percentiles
+
+  Percentiles are the quantiles obtained when defining 𝑝 as 0.01,0.02,...,0.99. They summarize the values at which a certain percent of the observations are equal to or less than that value.
+
+  The 50th percentile is also known as the *median*.
+
+  The *quartiles* are the 25th, 50th and 75th percentiles.
+  
+### Boxplots
+
+When data do not follow a normal distribution and cannot be succinctly summarized by only the mean and standard deviation, an alternative is to report a five-number summary: range (ignoring outliers) and the quartiles (25th, 50th, 75th percentile).
+
+In a boxplot, the box is defined by the 25th and 75th percentiles and the median is a horizontal line through the box. The whiskers show the range excluding outliers, and outliers are plotted separately as individual points.
+
+The interquartile range is the distance between the 25th and 75th percentiles.
+
+Boxplots are particularly useful when comparing multiple distributions.

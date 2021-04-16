@@ -1,0 +1,204 @@
+---
+title: "Introduction to ggplot"
+output: html_notebook
+---
+
+## Plotting with ggplot
+
+Layers:
+
+1. Data: The dataset being summarised
+2. Geometry: The type of plot
+3. Aesthetic mapping: Variables mapped to visual cues, such as x/y-axis values and colour
+
+Others:
+
+- Scale
+- Labels, Title, Legend
+- Themes/Styles
+
+### Basics
+
+```{r}
+library(tidyverse)
+data(murders)
+```
+
+Without describing anything, `ggplot` produces a blank slate
+
+```{r}
+murders %>% ggplot()
+```
+Printing the `ggplot` object gives the same output
+
+```{r}
+p <- ggplot(data = murders)
+class(p)
+print(p)
+```
+### Layers
+
+Here we add a geometry layer, assigning column names to x and y
+
+```{r}
+murders %>% ggplot() +
+  geom_point(aes(x = population/10^6, y = total))
+```
+The same effect can be achieved by using the plot object that we had created, `p`.
+
+```{r}
+p + geom_point(aes(x = population/10^6, y = total))
+```
+... and we can add more layers
+
+```{r}
+p + geom_point(aes(population/10^6, total)) +
+    geom_text(aes(population/10^6, total, label = abb))
+```
+Tinkering with the layers byt passing further arguments, outside of `aes()`
+
+```{r}
+p + geom_point(aes(population/10^6, total), size = 3) +
+    geom_text(aes(population/10^6, total, label = abb), nudge_x = 1)
+```
+The code can be simplified by setting a global mapping on `p`. Note that local mappings override default or global mappings.
+
+```{r}
+p <- murders %>% ggplot(aes(population/10^6, total, label = abb))
+
+p + 
+  geom_point(size = 3) +
+  geom_text(nudge_x = 1.5)
+```
+
+#### Scales
+
+Scales are another layer. Here we use the function `scale_x_continuous()` or `scale_y_continuous()` which are generic functions, but `scale_x_log10()` and `scale_y_log10()` can be used to simplify here.
+
+```{r}
+p + geom_point(size = 3) +
+  geom_text(nudge_x = 0.075) + # this value must be reduced for the log plot
+  scale_x_continuous(trans = "log10") +
+  scale_y_continuous(trans = "log10")
+```
+
+#### Labels & title
+
+The functions are `xlab` and `ylab`
+
+```{r}
+p + geom_point(size = 3) +
+    geom_text(nudge_x = 0.075) +
+    scale_x_log10() +
+    scale_y_log10() +
+    xlab("Population in millions (log scale)") +
+    ylab("Total number of murders (log scale)") +
+    ggtitle("US Gun Murders in 2010")
+```
+
+#### Colours
+
+Redefining `p` to include everything except the points layer. Then we can define the points layer, with a colour mapping, according to a categorical variable. The `x` and `y` mappings are already defined in the function call to `ggplot()` here.
+
+```{r}
+# redefine p to be everything except the points layer
+p <- murders %>%
+    ggplot(aes(population/10^6, total, label = abb)) +
+    geom_text(nudge_x = 0.075) +
+    scale_x_log10() +
+    scale_y_log10() +
+    xlab("Population in millions (log scale)") +
+    ylab("Total number of murders (log scale)") +
+    ggtitle("US Gun Murders in 2010")
+
+# make all points blue
+p + geom_point(size = 3, color = "blue")
+
+# color points by region
+p + geom_point(aes(col = region), size = 3)
+```
+
+#### Lines
+
+If we want to combine data on a graph, such as adding a line, it can simply be added as a new layer. Here the average murder rate is calculated from `data(murders)`, and the function `geom_abline()` describes the layer. Note that for the second plot where a dashed grey line is use, the line is added before the data, as the ordering defines the visual overlapping of layers on the plot.
+
+```{r}
+# define average murder rate
+r <- murders %>%
+    summarize(rate = sum(total) / sum(population) * 10^6) %>%
+    pull(rate)
+    
+# basic line with average murder rate for the country
+p + geom_point(aes(col = region), size = 3) +
+    geom_abline(intercept = log10(r)) +    # slope is default of 1
+    scale_color_discrete(name = "Region") # capitalise legend title
+    
+# change line to dashed and dark grey, line under points
+p + 
+    geom_abline(intercept = log10(r), lty = 2, color = "darkgrey") +
+    geom_point(aes(col = region), size = 3) + 
+    scale_color_discrete(name = "Region")
+```
+
+##### Legend title
+
+In the previous plots, note that we added this layer to our plot object to capitalise the legend title.
+
+```scale_color_discrete(name = "Region")    # capitalize legend title```
+
+## Add-on Packages
+
+Add-on packages provide additional features that fit well with the grammar in `ggplot`. Here they are simply added
+
+```{r}
+library(dslabs)
+library(ggthemes)
+library(ggrepel)
+ds_theme_set()
+
+# define the intercept
+r <- murders %>%
+    summarize(rate = sum(total) / sum(population) * 10^6) %>%
+    .$rate
+    
+# make the plot, combining all elements
+p <- murders %>%
+    ggplot(aes(population/10^6, total, label = abb)) +
+    geom_abline(intercept = log10(r), lty = 2, color = "darkgrey") +
+    geom_point(aes(col = region), size = 3) +
+    geom_text_repel() +
+    scale_x_log10() +
+    scale_y_log10() +
+    xlab("Population in millions (log scale)") +
+    ylab("Total number of murders (log scale)") +
+    ggtitle("US Gun Murders in 2010") +
+    scale_color_discrete(name = "Region")
+
+# themes from ggthemes
+p + theme_economist()    # style of the Economist magazine
+p + theme_fivethirtyeight()    # style of the FiveThirtyEight website
+```
+
+## Examples based on Distributions notebook (`01.md`)
+
+```{r}
+# load heights data
+library(tidyverse)
+library(dslabs)
+data(heights)
+
+# define p
+p <- heights %>%
+    filter(sex == "Male") %>%
+    ggplot(aes(x = height))
+    
+# basic histograms
+p + geom_histogram()
+p + geom_histogram(binwidth = 1)
+
+# histogram with blue fill, black outline, labels and title
+p + geom_histogram(binwidth = 1, fill = "blue", col = "black") +
+    xlab("Male heights in inches") +
+    ggtitle("Histogram")
+```
+
